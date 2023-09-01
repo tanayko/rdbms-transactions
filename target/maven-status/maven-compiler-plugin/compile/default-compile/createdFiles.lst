@@ -1,0 +1,6 @@
+com/lseg/acadia/skills/rdbmstx/mappers/OrdersMapper.class
+com/lseg/acadia/skills/rdbmstx/mappers/PeopleMapper.class
+com/lseg/acadia/skills/rdbmstx/DemoApplication.class
+com/lseg/acadia/skills/rdbmstx/config/SpringConfig.class
+com/lseg/acadia/skills/rdbmstx/models/Orders.class
+com/lseg/acadia/skills/rdbmstx/models/People.class

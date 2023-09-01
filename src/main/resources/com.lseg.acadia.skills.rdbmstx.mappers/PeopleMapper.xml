@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lseg.acadia.skills.rdbmstx.mappers.PeopleMapper">
+
+    <select id="selectAll" resultType="com.lseg.acadia.skills.rdbmstx.models.People">
+        SELECT *
+        FROM people
+    </select>
+
+    <select id="selectById" resultType="com.lseg.acadia.skills.rdbmstx.models.People">
+        SELECT *
+        FROM people
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into people (
+            name,
+            age
+        )
+        values (
+                   #{name},
+                   #{age}
+               )
+    </insert>
+
+    <update id="update">
+        UPDATE people
+        SET name = #{name},
+            age = #{age}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE
+        FROM people
+        WHERE id = #{id}
+    </delete>
+</mapper>

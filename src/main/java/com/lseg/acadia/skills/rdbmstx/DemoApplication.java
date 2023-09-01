@@ -1,4 +1,4 @@
-package com.lseg.acadia.skills.rdbmstx.demo;
+package com.lseg.acadia.skills.rdbmstx;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

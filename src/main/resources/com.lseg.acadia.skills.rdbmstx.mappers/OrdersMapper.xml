@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lseg.acadia.skills.rdbmstx.mappers.OrdersMapper">
+
+    <select id="selectAll" resultType="com.lseg.acadia.skills.rdbmstx.models.Orders">
+        SELECT *
+        FROM orders
+    </select>
+
+    <select id="selectById" resultType="com.lseg.acadia.skills.rdbmstx.models.Orders">
+        SELECT *
+        FROM orders
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into orders (
+            --
+            product,
+            cost,
+            userId
+            --
+        )
+        values (
+                   --
+                   #{product},
+                   #{cost},
+                   #{userId}
+                   --
+               )
+    </insert>
+
+    <update id="update">
+        UPDATE orders
+        SET product = #{product},
+            cost = #{cost},
+            userId = #{userId}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE
+        FROM orders
+        WHERE id = #{id}
+    </delete>
+</mapper>
