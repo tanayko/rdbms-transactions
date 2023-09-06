@@ -32,6 +32,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
+import java.sql.Time;
+import java.util.concurrent.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.testcontainers.shaded.org.hamcrest.MatcherAssert.assertThat;
@@ -205,7 +207,171 @@ class DemoApplicationTests extends AbstractDatabaseTest {
 	}
 
 	@Test
-	public void testTransaction2() {
+	public void testTransaction1V2() {
+		final ExecutorService executor = Executors.newCachedThreadPool();
 
+		CountDownLatch t1step1 = new CountDownLatch(1);
+		CountDownLatch t1step2 = new CountDownLatch(1);
+
+		CountDownLatch t2step1 = new CountDownLatch(1);
+
+		final Future<?> t1future = executor.submit(() -> {
+			try {
+				DefaultTransactionDefinition def1 = new DefaultTransactionDefinition();
+				def1.setName("T1");
+				def1.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+				TransactionStatus status1 = platformTransactionManager.getTransaction(def1);
+
+				try {
+					jdbcTemplate.update("insert into people (name, age) values (?, ?)", "person1", 50);
+				} catch (Exception e) {
+					logger.error("T1 rolled back");
+					platformTransactionManager.rollback(status1);
+					throw new RuntimeException(e);
+				}
+				t1step1.countDown();
+
+				Assertions.assertTrue(t2step1.await(5, TimeUnit.SECONDS));
+				try {
+					platformTransactionManager.commit(status1);
+				} catch (Exception e) {
+					logger.error("Error committing T1");
+					throw new RuntimeException(e);
+				}
+				t1step2.countDown();
+			} catch (Exception e) {
+				throw (RuntimeException) e;
+			}
+		});
+
+		final Future<?> t2future = executor.submit(() -> {
+			try {
+				Assertions.assertTrue(t1step1.await(5, TimeUnit.SECONDS));
+				DefaultTransactionDefinition def2 = new DefaultTransactionDefinition();
+				def2.setName("T2");
+				def2.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+				TransactionStatus status2 = platformTransactionManager.getTransaction(def2);
+
+				try {
+					Long id = jdbcTemplate.queryForObject("select id from people where name = 'person1'",
+							Long.class);
+				} catch (EmptyResultDataAccessException e) {
+					logger.info("No info found");
+				} catch (Exception e) {
+					logger.error("T2 rolled back");
+					platformTransactionManager.rollback(status2);
+					throw new RuntimeException(e);
+				}
+				t2step1.countDown();
+
+				Assertions.assertTrue(t1step2.await(5, TimeUnit.SECONDS));
+				try {
+					Long id = jdbcTemplate.queryForObject("select id from people where name = 'person1'",
+							Long.class);
+					assertEquals(id, 1);
+				} catch (Exception e) {
+					logger.info("Rolling back T2");
+					platformTransactionManager.rollback(status2);
+					throw new RuntimeException(e);
+				}
+
+				try {
+					platformTransactionManager.commit(status2);
+				} catch (Exception e) {
+					logger.info("Error committing T2");
+					throw new RuntimeException(e);
+				}
+			} catch (Exception e) {
+				throw (RuntimeException) e;
+			}
+		});
+
+		Assertions.assertDoesNotThrow(() -> t1future.get());
+		Assertions.assertDoesNotThrow(() -> t2future.get());
+
+		assertEquals(peopleMapper.selectAll().size(), 1);
+	}
+
+	@Test
+	public void testTransaction2() {
+		final ExecutorService executor = Executors.newCachedThreadPool();
+
+		CountDownLatch t1step1 = new CountDownLatch(1);
+		CountDownLatch t1step2 = new CountDownLatch(1);
+
+		CountDownLatch t2step1 = new CountDownLatch(1);
+
+		final Future<?> t1future = executor.submit(() -> {
+			try {
+				DefaultTransactionDefinition def1 = new DefaultTransactionDefinition();
+				def1.setName("T1");
+				def1.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+				TransactionStatus status1 = platformTransactionManager.getTransaction(def1);
+
+				try {
+					jdbcTemplate.update("insert into people (name, age) values (?, ?)", "person1", 50);
+					logger.info("reached t1 step 1");
+				} catch (Exception e) {
+					logger.error("T1 rolled back");
+					platformTransactionManager.rollback(status1);
+					throw new RuntimeException(e);
+				}
+				t1step1.countDown();
+
+				Assertions.assertTrue(t2step1.await(5, TimeUnit.SECONDS));
+				platformTransactionManager.rollback(status1);
+				t1step2.countDown();
+			} catch (Exception e) {
+				throw (RuntimeException) e;
+			}
+		});
+
+		final Future<?> t2future = executor.submit(() -> {
+			try {
+				Assertions.assertTrue(t1step1.await(5, TimeUnit.SECONDS));
+				DefaultTransactionDefinition def2 = new DefaultTransactionDefinition();
+				def2.setName("T2");
+				def2.setIsolationLevel(TransactionDefinition.ISOLATION_READ_UNCOMMITTED);
+				TransactionStatus status2 = platformTransactionManager.getTransaction(def2);
+
+				try {
+					logger.info("reached t2 step 1");
+					Long id = jdbcTemplate.queryForObject("select id from people where name = 'person1'",
+							Long.class);
+					assertEquals(id, 1);
+				} catch (Exception e) {
+					logger.info("Rolling back T2");
+					platformTransactionManager.rollback(status2);
+					throw new RuntimeException(e);
+				}
+				t2step1.countDown();
+
+				Assertions.assertTrue(t1step2.await(5, TimeUnit.SECONDS));
+				try {
+					Long id = jdbcTemplate.queryForObject("select id from people where name = 'person1'",
+							Long.class);
+				} catch (EmptyResultDataAccessException e) {
+					logger.info("No info found");
+				} catch (Exception e) {
+					logger.error("T2 rolled back");
+					platformTransactionManager.rollback(status2);
+					throw new RuntimeException(e);
+				}
+
+				try {
+					platformTransactionManager.commit(status2);
+				} catch (Exception e) {
+					logger.info("Error committing T2");
+					throw new RuntimeException(e);
+				}
+			} catch (Exception e) {
+				throw (RuntimeException) e;
+			}
+		});
+
+		Assertions.assertDoesNotThrow(() -> t1future.get());
+		Assertions.assertDoesNotThrow(() -> t2future.get());
+
+		assertEquals(peopleMapper.selectAll().size(), 0);
 	}
 }
