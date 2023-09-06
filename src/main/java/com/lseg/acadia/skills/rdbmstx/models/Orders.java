@@ -11,4 +11,10 @@ public class Orders {
     public Orders() {
 
     }
+
+    public Orders(String product, BigDecimal cost, long userId) {
+        this.product = product;
+        this.cost = cost;
+        this.userId = userId;
+    }
 }
